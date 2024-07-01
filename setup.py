@@ -9,7 +9,7 @@ import os
 import sys
 from shutil import rmtree
 
-from setuptools import find_packages, setup, Command
+from setuptools import setup, Command
 
 # Package meta-data.
 NAME = 'pickup'
@@ -22,7 +22,9 @@ VERSION = None
 LICENSE = 'MIT'
 # What packages are required for this module to be executed?
 REQUIRED = [
-    # 'requests', 'maya', 'records',
+    "PyYAML>=6.0.1",
+    "platformdirs>=4.2.2",
+    "win-roboco-py>=0.5.0"
 ]
 
 here = os.path.abspath(os.path.dirname(__file__))
