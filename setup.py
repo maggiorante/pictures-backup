@@ -12,12 +12,12 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'mypackage'
-DESCRIPTION = 'My short description for my project.'
-URL = 'https://github.com/me/myproject'
-EMAIL = 'me@example.com'
-AUTHOR = 'Awesome Soul'
-REQUIRES_PYTHON = '>=3.6.0'
+NAME = 'pickup'
+DESCRIPTION = 'Pictures backup tool'
+URL = 'https://github.com/maggiorante/pictures-backup'
+EMAIL = 'xho99@hotmail.it'
+AUTHOR = 'Xhorxho Papallazi'
+REQUIRES_PYTHON = '>=3.11.0'
 VERSION = None
 LICENSE = 'MIT'
 # What packages are required for this module to be executed?
@@ -83,10 +83,8 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    py_modules=['mypackage'],
-
     entry_points={
-        'console_scripts': ['app=cli:main'],
+        'console_scripts': ['pickup=app.cli:main'],
     },
     install_requires=REQUIRED,
     include_package_data=True,
