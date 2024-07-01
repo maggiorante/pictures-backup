@@ -1,11 +1,10 @@
 import logging
 import os
-import subprocess
-import time
 from argparse import ArgumentParser
 from pathlib import Path
 
 import platformdirs
+import win_roboco_py as robo
 import yaml
 
 
@@ -55,16 +54,22 @@ def main():
             chkp = yaml.safe_load(file)
 
     for key, value in config.items():
-        if not validate(value, ["path", "size", "filenames"]):
+        if not validate(value, ["inpath", "outpath", "filenames"]):
             logger.warning(f"Skipping {key} because it's not valid")
             continue
 
-        path = value["path"]
+        inpath = value["inpath"]
+        inpath_path = Path(inpath)
 
-        if not os.path.exists(path):
-            logger.warning(f"Skipping {key} because its path ({path}) field does not exist")
+        outpath = value["outpath"]
 
-        size = value["size"]
+        if not inpath_path.exists():
+            logger.warning(f"Skipping {key} because its path ({inpath}) field does not exist")
+            continue
+
+        key_path = Path(outpath, key)
+        if not key_path.exists():
+            os.makedirs(key_path)
 
         filenames_to_copy = value["filenames"]
         if type(filenames_to_copy) is not list:
@@ -74,12 +79,7 @@ def main():
         if key in chkp and validate(chkp[key], ["name", "time"]):
             timestamp = chkp[key]
 
-        if key.endswith(".zip"):
-            zip_name = f"{key[0, len(key) - 3]}_{round(time.time() * 1000)}.zip"
-        else:
-            zip_name = f"{key}_{round(time.time() * 1000)}.zip"
-
-        directories = sorted_directory_listing(path)
+        directories = sorted_directory_listing(inpath)
         timestamps[key] = directories[-1]
 
         if timestamp is not None:
@@ -89,20 +89,12 @@ def main():
             if index is not None and index != -1:
                 directories = directories[index + 1::]
 
-        key_path = data_path.joinpath(key)
-        with open(key_path, "w") as file:
-            for entry in directories:
-                directory = entry["name"]
-                for to_copy in filenames_to_copy:
-                    name = os.path.join(path, directory, to_copy)
-                    file.write(name)
-                    file.write("\n")
-
-        if size != 0:
-            # subprocess.run(["7z", "a", "-spf", f"-v{size}m", zip_name, f"@{key}"])
-            subprocess.run(["7z", "a", "-spf", f"-v{size}m", f"-ir@{key_path}", zip_name])
-        else:
-            subprocess.run(["7z", "a", "-spf", f"-ir@{key}", zip_name])
+        for entry in directories:
+            directory = entry["name"]
+            source = inpath_path.joinpath(directory)
+            destination = key_path.joinpath(directory)
+            for to_copy in filenames_to_copy:
+                robo.copy_file(source.joinpath(to_copy), destination)
 
     with open(timestamps_path, "w") as file:
         yaml.dump(timestamps, file)
