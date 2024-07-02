@@ -1,11 +1,14 @@
 import logging
 import os
+import time
 from argparse import ArgumentParser
 from pathlib import Path
 
 import platformdirs
 import win_roboco_py as robo
 import yaml
+
+logger = logging.getLogger(__name__)
 
 
 def validate(item, keys):
@@ -29,10 +32,15 @@ def find(lst, key, value):
     return -1
 
 
+def milli_time(_time):
+    return round(_time * 1000)
+
+
 def main():
     appname = "pickup"
     parser = ArgumentParser(prog=appname)
     parser.add_argument("config", help="Config file", type=str)
+    parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
     assert os.path.exists(args.config), "Config file does not exist"
@@ -40,13 +48,21 @@ def main():
     with open(args.config, 'r') as file:
         config = yaml.safe_load(file)
 
-    logger = logging.getLogger(__name__)
-
-    timestamps = dict()
-
     data_path = Path(platformdirs.user_data_dir(appname))
     if not data_path.exists():
         data_path.mkdir(parents=True)
+
+    log_path = data_path.joinpath(".log")
+    if args.verbose:
+        logging.basicConfig(filename=log_path, level=logging.DEBUG)
+    else:
+        logging.basicConfig(filename=log_path)
+
+    start_time = time.time()
+    logger.info("Start time [ns]: %s" % start_time)
+
+    timestamps = dict()
+
     timestamps_path = data_path.joinpath("timestamps.yml")
     chkp = {}
     if timestamps_path.exists():
@@ -55,7 +71,8 @@ def main():
 
     for key, value in config.items():
         if not validate(value, ["inpath", "outpath", "filenames"]):
-            logger.warning(f"Skipping {key} because it's not valid")
+            logger.error(
+                f"Skipping {key} because its structure is not valid. 'inpath', 'outpath' and 'filenames' fields are required!")
             continue
 
         inpath = value["inpath"]
@@ -64,7 +81,7 @@ def main():
         outpath = value["outpath"]
 
         if not inpath_path.exists():
-            logger.warning(f"Skipping {key} because its path ({inpath}) field does not exist")
+            logger.error(f"Skipping {key} because the inpath path ({inpath}) does not exist")
             continue
 
         key_path = Path(outpath, key)
@@ -87,17 +104,24 @@ def main():
             if index == len(directories) - 1:
                 continue
             if index is not None and index != -1:
-                directories = directories[index + 1::]
+                directories = directories[index::]
 
         for entry in directories:
             directory = entry["name"]
             source = inpath_path.joinpath(directory)
             destination = key_path.joinpath(directory)
             for to_copy in filenames_to_copy:
-                robo.copy_file(source.joinpath(to_copy), destination)
+                try:
+                    robo.copy_file(source.joinpath(to_copy), destination, verbose=args.verbose)
+                except AssertionError:
+                    logger.error(f"{source.joinpath(to_copy)} not found")
 
     with open(timestamps_path, "w") as file:
         yaml.dump(timestamps, file)
+
+    end_time = time.time()
+    logger.info("End time [ns]: %s" % end_time)
+    logger.info("Duration [ms]: %s" % milli_time(end_time - start_time))
 
 
 if __name__ == '__main__':

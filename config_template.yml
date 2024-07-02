@@ -1,0 +1,4 @@
+prova:
+    inpath: "C:\\Users\\user\\Pictures\\"
+    outpath: "C:\\Users\\user\\Desktop\\"
+    filenames: "salame.png"
