@@ -7,6 +7,7 @@ from pathlib import Path
 import platformdirs
 import win_roboco_py as robo
 import yaml
+from tendo import singleton
 
 logger = logging.getLogger(__name__)
 
@@ -125,4 +126,6 @@ def main():
 
 
 if __name__ == '__main__':
+    # will sys.exit(-1) if other instance is running
+    me = singleton.SingleInstance()
     main()
